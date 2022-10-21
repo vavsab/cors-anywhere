@@ -19,9 +19,9 @@ request.Test.prototype.expectJSON = function(json, done) {
     try {
       actual = JSON.parse(res.text);
     } catch (err) {
-      throw new Error(`Failed to parse JSON: ${err.message}. Text: ${res.text}`);
+      throw new Error('Failed to parse JSON: ' + err.message + 'Text: ' + res.text);
     }
-    
+
     assert.deepEqual(actual, json);
   });
   return done ? this.end(done) : this;
@@ -38,6 +38,7 @@ request.Test.prototype.expectNoHeader = function(header, done) {
 
 var cors_anywhere;
 var cors_anywhere_port;
+var cors_anywhere_address;
 function stopServer(done) {
   cors_anywhere.close(function() {
     done();
@@ -48,7 +49,9 @@ function stopServer(done) {
 describe('Basic functionality', function() {
   before(function() {
     cors_anywhere = createServer();
-    cors_anywhere_port = cors_anywhere.listen(0).address().port;
+    var address = cors_anywhere.listen(0).address();
+    cors_anywhere_port = address.port;
+    cors_anywhere_address = "127.0.0.1:" + cors_anywhere_port;
   });
   after(stopServer);
 
@@ -314,6 +317,7 @@ describe('Basic functionality', function() {
       .expect('Access-Control-Allow-Origin', '*')
       .expectJSON({
         host: 'example.com',
+        'x-forwarded-host': cors_anywhere_address,
         'x-forwarded-port': String(cors_anywhere_port),
         'x-forwarded-proto': 'http',
       }, done);
@@ -326,6 +330,7 @@ describe('Basic functionality', function() {
       .expect('Access-Control-Allow-Origin', '*')
       .expectJSON({
         host: 'example.com:1337',
+        'x-forwarded-host': cors_anywhere_address,
         'x-forwarded-port': String(cors_anywhere_port),
         'x-forwarded-proto': 'http',
       }, done);
@@ -338,6 +343,7 @@ describe('Basic functionality', function() {
       .expect('Access-Control-Allow-Origin', '*')
       .expectJSON({
         host: 'example.com',
+        'x-forwarded-host': cors_anywhere_address,
         'x-forwarded-port': String(cors_anywhere_port),
         'x-forwarded-proto': 'http',
       }, done);
@@ -386,6 +392,7 @@ describe('Proxy errors', function() {
         if (data.indexOf('\r\n') >= 0) {
           // Assume end of headers.
           socket.write('HTTP/1.0 0\r\n');
+
           socket.write('Content-Length: 0\r\n');
           socket.end('\r\n');
         }
@@ -493,6 +500,7 @@ describe('Proxy errors', function() {
         setHeaders: {headername: 'invalid\x01value'},
       });
       cors_anywhere_port = cors_anywhere.listen(0).address().port;
+      cors_anywhere_address = "127.0.0.1:" + cors_anywhere_port;
       request(cors_anywhere)
         .get('/' + bad_tcp_server_url) // Any URL that isn't intercepted by Nock would do.
         .expect('Access-Control-Allow-Origin', '*')
@@ -511,6 +519,7 @@ describe('server on https', function() {
       },
     });
     cors_anywhere_port = cors_anywhere.listen(0).address().port;
+    cors_anywhere_address = "127.0.0.1:" + cors_anywhere_port;
     // Disable certificate validation in case the certificate expires.
     NODE_TLS_REJECT_UNAUTHORIZED = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
@@ -531,6 +540,7 @@ describe('server on https', function() {
       .expect('Access-Control-Allow-Origin', '*')
       .expectJSON({
         host: 'example.com',
+        'x-forwarded-host': String(cors_anywhere_address),
         'x-forwarded-port': String(cors_anywhere_port),
         'x-forwarded-proto': 'https',
       }, done);
@@ -543,6 +553,7 @@ describe('server on https', function() {
       .expect('Access-Control-Allow-Origin', '*')
       .expectJSON({
         host: 'example.com',
+        'x-forwarded-host': cors_anywhere_address,
         'x-forwarded-port': String(cors_anywhere_port),
         'x-forwarded-proto': 'https',
       }, done);
@@ -555,6 +566,7 @@ describe('server on https', function() {
       .expect('Access-Control-Allow-Origin', '*')
       .expectJSON({
         host: 'example.com:1337',
+        'x-forwarded-host': String(cors_anywhere_address),
         'x-forwarded-port': String(cors_anywhere_port),
         'x-forwarded-proto': 'https',
       }, done);

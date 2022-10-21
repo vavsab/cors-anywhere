@@ -39,6 +39,7 @@ function echoheaders(origin) {
         'test-include-xfwd',
       ];
       if (!('test-include-xfwd' in headers)) {
+        excluded_headers.push('x-forwarded-host');
         excluded_headers.push('x-forwarded-port');
         excluded_headers.push('x-forwarded-proto');
       }
