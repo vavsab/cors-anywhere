@@ -48,7 +48,7 @@ function echoheaders(origin) {
           response[name] = headers[name];
         }
       });
-      return response;
+      return [200, response];
     });
 }
 

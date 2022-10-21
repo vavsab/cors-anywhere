@@ -15,7 +15,13 @@ var helpText = fs.readFileSync(helpTextPath, {encoding: 'utf8'});
 request.Test.prototype.expectJSON = function(json, done) {
   this.expect(function(res) {
     // Assume that the response can be parsed as JSON (otherwise it throws).
-    var actual = JSON.parse(res.text);
+    var actual;
+    try {
+      actual = JSON.parse(res.text);
+    } catch (err) {
+      throw new Error(`Failed to parse JSON: ${err.message}. Text: ${res.text}`);
+    }
+    
     assert.deepEqual(actual, json);
   });
   return done ? this.end(done) : this;
@@ -175,7 +181,7 @@ describe('Basic functionality', function() {
       .post('/example.com/echopost')
       .attach('file', path.join(__dirname, 'dummy.txt'))
       .expect('Access-Control-Allow-Origin', '*')
-      .expect(/\r\nContent-Disposition: form-data; name="file"; filename="dummy.txt"\r\nContent-Type: text\/plain\r\n\r\ndummy content\r\n\r\n/, done); // eslint-disable-line max-len
+      .expect(/\r\nContent-Disposition: form-data; name="file"; filename="dummy.txt"\r\nContent-Type: text\/plain\r\n\r\ndummy content\n\r\n/, done); // eslint-disable-line max-len
   });
 
   it('HEAD with redirect should be followed', function(done) {
